@@ -7,6 +7,7 @@ var EventEmitter = require('events').EventEmitter;
 var uuid = require('uuid');
 var curry = require('curry');
 var Job = require('./job');
+var _ = require('lodash');
 
 var DEFAULT_SQS_Attributes = {
   ReceiveMessageWaitTimeSeconds: '20',
@@ -16,6 +17,7 @@ var DEFAULT_STATUSES = ['pending', 'inprogress', 'completed'];
 var ACCEPTABLE_S3_ERRORS = [
   'BucketAlreadyOwnedByYou'
 ];
+var NOTMETA_KEYS = ['key', 'body'];
 
 /**
   # remotejob
@@ -245,11 +247,14 @@ module.exports = function(name, opts) {
   queue.store = curry(function _store(direction, data, callback) {
     var key = (data || {}).key || uuid.v4();
     var bucket = ['remotejobs', direction, name].join('-');
+    var metadata = _.omit(data, function(value, key) {
+      return NOTMETA_KEYS.indexOf(key) >= 0;
+    });
     var opts = {
       Bucket: bucket,
       Key: key,
       Body: (data || {}).body || '',
-      Metadata: (data || {}).metadata || {},
+      Metadata: metadata,
       ACL: 'bucket-owner-read'
     };
 
