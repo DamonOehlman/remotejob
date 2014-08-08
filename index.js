@@ -241,6 +241,10 @@ module.exports = function(name, opts) {
 
   **/
   queue.submit = function(data, callback) {
+    async.waterfall([
+      queue.store('in', data),
+      queue.trigger('in')
+    ], callback);
   };
 
   /**
@@ -248,8 +252,8 @@ module.exports = function(name, opts) {
 
     Add an entry to the queue for processing the input identified by `key`
   **/
-  queue.trigger = function(key, callback) {
-    var bucket = ['remotejobs', 'in', name].join('-');
+  queue.trigger = curry(function(status, key, callback) {
+    var bucket = ['remotejobs', status, name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
@@ -264,7 +268,7 @@ module.exports = function(name, opts) {
       // write data to the pending queue
       queueWrite('pending', extend({}, data.Metadata, { bucket: bucket, key: key }), callback);
     });
-  };
+  });
 
   /**
     ### "Hidden" functions

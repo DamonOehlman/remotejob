@@ -12,3 +12,4 @@ test('wait for queue to be ready', function(t) {
 
 require('./store')(queue);
 require('./trigger')(queue);
+require('./submit')(queue);
