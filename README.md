@@ -51,7 +51,11 @@ queue.next('pending', function(err, job) {
     return console.error('could not get next job');
   }
 
-  job.createReadStream().pipe(fs.createWriteStream(__dirname, '/newcat.jpg'));
+  // acknowledge the job
+  job.acknowledge();
+
+  // download the file
+  job.createReadStream().pipe(fs.createWriteStream(__dirname + '/newcat.jpg'));
 });
 
 ```
@@ -61,6 +65,10 @@ queue.next('pending', function(err, job) {
 To be completed.
 
 ## Reference
+
+#### `download(opts) => ReadableStream`
+
+Create a readable stream for the S3 object details provided.
 
 #### `next(status, callback)`
 

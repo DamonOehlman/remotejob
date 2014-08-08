@@ -9,5 +9,9 @@ queue.next('pending', function(err, job) {
     return console.error('could not get next job');
   }
 
-  job.createReadStream().pipe(fs.createWriteStream(__dirname, '/newcat.jpg'));
+  // acknowledge the job
+  job.acknowledge();
+
+  // download the file
+  job.createReadStream().pipe(fs.createWriteStream(__dirname + '/newcat.jpg'));
 });
