@@ -15,19 +15,37 @@ To be completed.
 
 ## Reference
 
+#### `next(status, callback)`
+
+This function is used to request the next job available for the `status`
+processing queue. If the requested `status` does not relate to a known
+queue, then the callback will return an error, otherwise, it will
+fire once the next
+
+#### `remove(direction, key, callback)`
+
+Remove the specified `key` from the `direction` objects datastore.
+
 #### `retrieve(direction, key, callback)`
 
 Retrieve an object from either the input or the output queue (as
 specified byt the `direction` argument).
 
-#### `status(callback)`
-
 #### `store(direction, data, callback)`
 
 #### `submit(data, callback)`
 
-The `submit` function performs the `store` and `schedule` operations
+The `submit` function performs the `store` and `trigger` operations
 one after the other.
+
+#### `trigger(key, callback)`
+
+Add an entry to the queue for processing the input identified by `key`
+
+### "Hidden" functions
+
+The following functions are available for use, but in general aren't that
+useful when working with the `remotejob` queue.
 
 ## License(s)
 
