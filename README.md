@@ -47,6 +47,12 @@ Add an entry to the queue for processing the input identified by `key`
 The following functions are available for use, but in general aren't that
 useful when working with the `remotejob` queue.
 
+#### `_removeJob(status, receiptHandle, callback)`
+
+This function is used to remove jobs from the specified `status` queue.
+As required but AWS SQS, this function accepts a `receiptHandle` for a
+message and passed that through to remove the message from the queue.
+
 ## License(s)
 
 ### MIT
