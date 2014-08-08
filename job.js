@@ -32,3 +32,7 @@ Job.prototype.acknowledge = function(callback) {
   // remove from the pending queue
   this.queue._removeJob('pending', this.data.ReceiptHandle, callback);
 };
+
+Job.prototype.createReadStream = function() {
+  return this.queue.download(this);
+};

@@ -163,6 +163,21 @@ module.exports = function(name, opts) {
   }
 
   /**
+    #### `download(opts) => ReadableStream`
+
+    Create a readable stream for the S3 object details provided.
+  **/
+  queue.download = function (job) {
+    var opts = {
+      Bucket: (job || {}).bucket,
+      Key: (job || {}).key
+    };
+
+    debug('attempting to download: ', opts);
+    return s3.getObject(opts).createReadStream();
+  };
+
+  /**
     #### `next(status, callback)`
 
     This function is used to request the next job available for the `status`
