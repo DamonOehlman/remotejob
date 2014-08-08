@@ -9,6 +9,53 @@ approach to getting remote work done, but also pragmatic.
 
 [![Build Status](https://img.shields.io/travis/DamonOehlman/remotejob.svg?branch=master)](https://travis-ci.org/DamonOehlman/remotejob) 
 
+## Getting Started
+
+The following code illustrates what a "job requester" would do to request a job
+is queued for remote execution.
+
+```js
+var fs = require('fs');
+var queue = require('remotejob')('testqueue', {
+  key: process.env.REMOTEBUILD_TEST_KEY,
+  secret: process.env.REMOTEBUILD_TEST_SECRET
+});
+
+// cats from: http://commons.wikimedia.org/wiki/Cat#mediaviewer/File:Collage_of_Six_Cats-01.jpg
+var data = {
+  name: 'Cat Montage',
+  body: fs.createReadStream(__dirname + '/cat.jpg')
+};
+
+queue.submit(data, function(err, jobno) {
+  if (err) {
+    return console.error('could not submit job');
+  }
+
+  console.log('job ' + jobno + ' submitted for processing');
+});
+
+```
+
+On the receiving end, the code would look something similar to this:
+
+```js
+var fs = require('fs');
+var queue = require('remotejob')('testqueue', {
+  key: process.env.REMOTEBUILD_TEST_KEY,
+  secret: process.env.REMOTEBUILD_TEST_SECRET
+});
+
+queue.next('pending', function(err, job) {
+  if (err) {
+    return console.error('could not get next job');
+  }
+
+  job.createReadStream().pipe(fs.createWriteStream(__dirname, '/newcat.jpg'));
+});
+
+```
+
 ## How it Works
 
 To be completed.

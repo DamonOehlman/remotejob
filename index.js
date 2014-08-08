@@ -33,6 +33,10 @@ var NOTMETA_KEYS = ['key', 'body'];
 
   <<< examples/submit.js
 
+  On the receiving end, the code would look something similar to this:
+
+  <<< examples/process-next.js
+
   ## How it Works
 
   To be completed.
@@ -299,7 +303,7 @@ module.exports = function(name, opts) {
     };
 
     if (! ready) {
-      return this.once('ready', defer(_trigger, arguments));
+      return queue.once('ready', defer(_trigger, arguments));
     }
 
     debug('attempting to get metadata for object ' + key + ' from bucket: ' + bucket);
