@@ -60,10 +60,6 @@ queue.next('pending', function(err, job) {
 
 ```
 
-## How it Works
-
-To be completed.
-
 ## Reference
 
 #### `download(opts) => ReadableStream`
@@ -87,6 +83,12 @@ Retrieve an object from either the input or the output queue (as
 specified byt the `direction` argument).
 
 #### `store(direction, data, callback)`
+
+The store function is used to store metadata and an optional `body` to
+S3 storage for the queue bucket for the requested direction.
+
+The remotejob system uses two buckets to track the inbound and outbound
+data for objects being processed by the system.
 
 #### `submit(data, callback)`
 

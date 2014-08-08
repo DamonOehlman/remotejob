@@ -37,10 +37,6 @@ var NOTMETA_KEYS = ['key', 'body'];
 
   <<< examples/process-next.js
 
-  ## How it Works
-
-  To be completed.
-
   ## Reference
 
 **/
@@ -261,6 +257,12 @@ module.exports = function(name, opts) {
 
   /**
     #### `store(direction, data, callback)`
+
+    The store function is used to store metadata and an optional `body` to
+    S3 storage for the queue bucket for the requested direction.
+
+    The remotejob system uses two buckets to track the inbound and outbound
+    data for objects being processed by the system.
 
   **/
   queue.store = curry(function _store(direction, data, callback) {
