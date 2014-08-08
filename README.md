@@ -7,7 +7,7 @@ approach to getting remote work done, but also pragmatic.
 
 [![NPM](https://nodei.co/npm/remotejob.png)](https://nodei.co/npm/remotejob/)
 
-[![Build Status](https://img.shields.io/travis/DamonOehlman/remotejob.svg?branch=master)](https://travis-ci.org/DamonOehlman/remotejob) 
+[![unstable](https://img.shields.io/badge/stability-unstable-yellowgreen.svg)](https://github.com/dominictarr/stability#unstable) [![Build Status](https://img.shields.io/travis/DamonOehlman/remotejob.svg?branch=master)](https://travis-ci.org/DamonOehlman/remotejob) 
 
 ## Getting Started
 
