@@ -273,7 +273,15 @@ module.exports = function(name, opts) {
     useful when working with the `remotejob` queue.
   **/
 
-  queue._removeJob = function(status, handle, callback) {
+  /**
+    #### `_removeJob(status, receiptHandle, callback)`
+
+    This function is used to remove jobs from the specified `status` queue.
+    As required but AWS SQS, this function accepts a `receiptHandle` for a
+    message and passed that through to remove the message from the queue.
+
+  **/
+  queue._removeJob = curry(function(status, handle, callback) {
     var queueUrl = statusQueues[status];
     if (! queueUrl) {
       return callback(new Error('no queue for status: ' + status));
@@ -284,7 +292,7 @@ module.exports = function(name, opts) {
       QueueUrl: queueUrl,
       ReceiptHandle: handle
     }, callback);
-  };
+  });
 
   async.parallel([ createQueues, createBucket('in'), createBucket('out') ], function(err) {
     if (err) {
