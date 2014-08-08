@@ -4,6 +4,8 @@ var debug = require('debug')('remotejob');
 var pluck = require('whisk/pluck');
 var extend = require('cog/extend');
 var EventEmitter = require('events').EventEmitter;
+var uuid = require('uuid');
+var curry = require('curry');
 
 var DEFAULT_Attributes = {};
 var ACCEPTABLE_S3_ERRORS = [
@@ -85,21 +87,22 @@ module.exports = function(name, opts) {
     sqs.getQueueAttributes(opts, callback);
   }
 
-  function getQueueUrl(callback) {
+  /**
+    #### `retrieve(direction, key, callback)`
+
+    Retrieve an object from either the input or the output queue (as
+    specified byt the `direction` argument).
+  **/
+  queue.retrieve = curry(function(direction, key, callback) {
+    var bucket = ['remotejobs', direction, name].join('-');
     var opts = {
-      QueueName: name
+      Bucket: bucket,
+      Key: key
     };
 
-    debug('attempting to get queue url for: ' + name);
-    sqs.getQueueUrl(opts, function(err, response) {
-      if (err) {
-        return callback(err);
-      }
-
-      queue.emit('ready', queueUrl = response.QueueUrl);
-      callback(null, queueUrl)
-    });
-  }
+    debug('attempting to retrieve object ' + key + ' from bucket: ' + bucket);
+    s3.getObject(opts, callback);
+  });
 
   /**
     #### `status(callback)`
@@ -117,6 +120,37 @@ module.exports = function(name, opts) {
     }
 
     getQueueAttributes(queueUrl, callback);
+  };
+
+  /**
+    #### `store(direction, data, callback)`
+
+  **/
+  queue.store = curry(function(direction, data, callback) {
+    var key = (data || {}).key || uuid.v4();
+    var bucket = ['remotejobs', direction, name].join('-');
+    var opts = {
+      Bucket: bucket,
+      Key: key,
+      Body: (data || {}).body || '',
+      Metadata: (data || {}).metadata || {},
+      ACL: 'bucket-owner-read'
+    };
+
+    debug('putting object "' + key + '" into bucket: ' + bucket);
+    s3.putObject(opts, function(err, response) {
+      callback(err, err ? null : key);
+    });
+  });
+
+  /**
+    #### `submit(data, callback)`
+
+    The `submit` function performs the `store` and `schedule` operations
+    one after the other.
+
+  **/
+  queue.submit = function(data, callback) {
   };
 
   async.parallel([ createQueue, createBucket('in'), createBucket('out') ], function(err) {

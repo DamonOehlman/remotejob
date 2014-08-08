@@ -1,1 +1,14 @@
-require('./connect');
+var queueName = 'test'; // require('uuid').v4();
+var test = require('tape');
+var queue = require('..')(queueName, {
+  key: process.env.REMOTEBUILD_TEST_KEY,
+  secret: process.env.REMOTEBUILD_TEST_SECRET
+});
+
+test('wait for queue to be ready', function(t) {
+  t.plan(1);
+  queue.once('ready', t.pass);
+});
+
+// require('./connect')(queue);
+require('./store')(queue);
