@@ -1,9 +1,19 @@
 # remotejob
 
+This is a package that allows you to request the execution of remote jobs
+through the use of AWS S3 and SQS for job coordination.  It's an opinionated
+approach to getting remote work done, but also pragmatic.
+
 
 [![NPM](https://nodei.co/npm/remotejob.png)](https://nodei.co/npm/remotejob/)
 
 [![Build Status](https://img.shields.io/travis/DamonOehlman/remotejob.svg?branch=master)](https://travis-ci.org/DamonOehlman/remotejob) 
+
+## How it Works
+
+To be completed.
+
+## Reference
 
 #### `retrieve(direction, key, callback)`
 

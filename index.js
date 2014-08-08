@@ -15,6 +15,15 @@ var ACCEPTABLE_S3_ERRORS = [
 /**
   # remotejob
 
+  This is a package that allows you to request the execution of remote jobs
+  through the use of AWS S3 and SQS for job coordination.  It's an opinionated
+  approach to getting remote work done, but also pragmatic.
+
+  ## How it Works
+
+  To be completed.
+
+  ## Reference
 
 **/
 module.exports = function(name, opts) {
