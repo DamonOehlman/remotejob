@@ -1,6 +1,10 @@
 language: node_js
 node_js:
-- 0.10
+- 0.1
 notifications:
   email:
   - damon.oehlman@gmail.com
+env:
+  global:
+  - secure: lWtUV2rUTq/rNth81og4Ck53Y5QmIoTuIEL2wyYC+4R7d5Tw/t7CmYOl+BZIj5zRfjW/tutEm3bRV7LPGWYQ+G74LDBsp4hNQGjgvKPXNOiCnJLOomtd2jWpAXKLYxFTNxwgmEtMXWk0tb0gpvsVHGgj5BuWrQnwCxFqEu+R4rE=
+  - secure: Wr10PCTxJCkc920e00CDP0GyeeZO4vkOTJisqnkhv84sihBxAf/ZWNb4AFcY6CUu4n7zk/voBF1d/dK96LdJjzDpbxI3sAEZXeof4XjkhCrBGIYbVFhKMu6hQ1Az1RU9psLq+JZ/swD++oRuC/0VKHJRvVrsc/TVZSNl7U67ZtU=
