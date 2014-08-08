@@ -1,5 +1,6 @@
 var fs = require('fs');
 var test = require('tape');
+var uuid = require('uuid');
 var lastKey;
 
 module.exports = function(queue) {
@@ -12,6 +13,13 @@ module.exports = function(queue) {
     queue.store('in', data, function(err, key) {
       t.ifError(err);
       t.ok(lastKey = key);
+    });
+  });
+
+  test('attempt to retrieve an unknown object fails', function(t) {
+    t.plan(1);
+    queue.retrieve('in', uuid.v4(), function(err) {
+      t.ok(err, 'received error as expected');
     });
   });
 
