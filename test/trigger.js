@@ -2,6 +2,7 @@ var fs = require('fs');
 var test = require('tape');
 var uuid = require('uuid');
 var lastKey;
+var lastJobNo;
 
 module.exports = function(queue) {
   test('able to store data in the queue', function(t) {
@@ -16,17 +17,23 @@ module.exports = function(queue) {
     });
   });
 
-  test('attempt to retrieve an unknown object fails', function(t) {
-    t.plan(1);
-    queue.retrieve('in', uuid.v4(), function(err) {
-      t.ok(err, 'received error as expected');
+  test('able to trigger processing of an item', function(t) {
+    t.plan(2);
+    queue.trigger(lastKey, function(err, jobno) {
+      t.ifError(err);
+      t.ok(lastJobNo = jobno, 'got job no');
     });
   });
 
-  test('able to retrieve a stored object', function(t) {
-    t.plan(1);
-    queue.retrieve('in', lastKey, function(err, data) {
+  test('get the next item from the pending queue', function(t) {
+    t.plan(4);
+    queue.next('pending', function(err, job) {
       t.ifError(err);
+      t.ok(job, 'got job');
+      t.equal(job.id, lastJobNo, 'matched expected job');
+
+      // acknowledge the job (which removes it from the queue)
+      job.acknowledge(t.ifErr);
     });
   });
 

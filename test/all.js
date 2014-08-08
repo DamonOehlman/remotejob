@@ -10,5 +10,5 @@ test('wait for queue to be ready', function(t) {
   queue.once('ready', t.pass);
 });
 
-// require('./connect')(queue);
 require('./store')(queue);
+require('./trigger')(queue);

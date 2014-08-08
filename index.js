@@ -6,8 +6,13 @@ var extend = require('cog/extend');
 var EventEmitter = require('events').EventEmitter;
 var uuid = require('uuid');
 var curry = require('curry');
+var Job = require('./job');
 
-var DEFAULT_Attributes = {};
+var DEFAULT_SQS_Attributes = {
+  ReceiveMessageWaitTimeSeconds: '20',
+  VisibilityTimeout: '30'
+};
+var DEFAULT_STATUSES = ['pending', 'inprogress', 'completed'];
 var ACCEPTABLE_S3_ERRORS = [
   'BucketAlreadyOwnedByYou'
 ];
@@ -28,9 +33,15 @@ var ACCEPTABLE_S3_ERRORS = [
 **/
 module.exports = function(name, opts) {
   var queue = new EventEmitter();
-  var queueUrl;
   var accessKeyId = (opts || {}).key;
   var region = (opts || {}).region || 'us-west-1';
+
+  // initialise the status queues
+  var statusQueues = {
+    pending: null,
+    inprogress: null,
+    completed: null
+  };
 
   var s3 = new AWS.S3({
     apiVersion: '2006-03-01',
@@ -73,16 +84,31 @@ module.exports = function(name, opts) {
     };
   }
 
-  function createQueue(callback) {
+  function createQueues(callback) {
+    var childQueues = Object.keys(statusQueues);
+
+    async.map(childQueues, createSubQueue, function(err, urls) {
+      if (err) {
+        return callback(err);
+      }
+
+      childQueues.forEach(function(childKey, index) {
+        statusQueues[childKey] = urls[index];
+      });
+
+      callback();
+    });
+  }
+
+  function createSubQueue(childKey, callback) {
     var opts = {
-      QueueName: name,
-      Attributes: extend({}, DEFAULT_Attributes, (opts || {}).attributes)
+      QueueName: name + '-' + childKey,
+      Attributes: extend({}, DEFAULT_SQS_Attributes, (opts || {}).attributes)
     };
 
     debug('attempting queue creation: ', opts);
     sqs.createQueue(opts, function(err, data) {
-      queueUrl = err || (data && data.QueueUrl);
-      callback(err);
+      callback(err, err || (data && data.QueueUrl));
     });
   }
 
@@ -95,6 +121,79 @@ module.exports = function(name, opts) {
     debug('attempting to get queue attributes: ', opts);
     sqs.getQueueAttributes(opts, callback);
   }
+
+  function queueWrite(status, data, callback) {
+    var opts = {
+      QueueUrl: statusQueues[status],
+      MessageBody: JSON.stringify(data),
+    };
+
+    if (! opts.QueueUrl) {
+      return callback(new Error('no status queue for status: ' + status));
+    }
+
+    debug('writing job to the ' + status + ' queue');
+    sqs.sendMessage(opts, function(err, response) {
+      if (err) {
+        return callback(err);
+      }
+
+      callback(null, response && response.MessageId);
+    });
+  }
+
+  /**
+    #### `next(status, callback)`
+
+    This function is used to request the next job available for the `status`
+    processing queue. If the requested `status` does not relate to a known
+    queue, then the callback will return an error, otherwise, it will
+    fire once the next
+  **/
+  queue.next = curry(function(status, callback) {
+    var opts = {
+      QueueUrl: statusQueues[status],
+      MaxNumberOfMessages: 1
+    };
+
+    if (! opts.QueueUrl) {
+      return callback(new Error('no status queue for status: ' + status));
+    }
+
+    debug('requesting next message from the ' + status + ' queue');
+    sqs.receiveMessage(opts, function(err, data) {
+      var messages = (data && data.Messages) || [];
+      var job;
+
+      if (err) {
+        return callback(err);
+      }
+
+      // if we have no messages, then continue waiting
+      if (messages.length === 0) {
+        return queue.next(status, callback);
+      }
+
+      // create the new job instance
+      callback(null, new Job(queue, messages[0]));
+    });
+  });
+
+  /**
+    #### `remove(direction, key, callback)`
+
+    Remove the specified `key` from the `direction` objects datastore.
+  **/
+  queue.remove = curry(function(direction, key, callback) {
+    var bucket = ['remotejobs', direction, name].join('-');
+    var opts = {
+      Bucket: bucket,
+      Key: key
+    };
+
+    debug('attempting to remove object ' + key + ' from bucket: ' + bucket);
+    s3.deleteObject(opts, callback);
+  });
 
   /**
     #### `retrieve(direction, key, callback)`
@@ -112,24 +211,6 @@ module.exports = function(name, opts) {
     debug('attempting to retrieve object ' + key + ' from bucket: ' + bucket);
     s3.getObject(opts, callback);
   });
-
-  /**
-    #### `status(callback)`
-
-  **/
-  queue.status = function(callback) {
-    if (! queueUrl) {
-      return queue.once('ready', function() {
-        queue.status(callback);
-      });
-    }
-
-    if (queueUrl instanceof Error) {
-      return callback(queueUrl);
-    }
-
-    getQueueAttributes(queueUrl, callback);
-  };
 
   /**
     #### `store(direction, data, callback)`
@@ -155,15 +236,59 @@ module.exports = function(name, opts) {
   /**
     #### `submit(data, callback)`
 
-    The `submit` function performs the `store` and `schedule` operations
+    The `submit` function performs the `store` and `trigger` operations
     one after the other.
 
   **/
   queue.submit = function(data, callback) {
   };
 
-  async.parallel([ createQueue, createBucket('in'), createBucket('out') ], function(err) {
+  /**
+    #### `trigger(key, callback)`
+
+    Add an entry to the queue for processing the input identified by `key`
+  **/
+  queue.trigger = function(key, callback) {
+    var bucket = ['remotejobs', 'in', name].join('-');
+    var opts = {
+      Bucket: bucket,
+      Key: key
+    };
+
+    debug('attempting to get metadata for object ' + key + ' from bucket: ' + bucket);
+    s3.headObject(opts, function(err, data) {
+      if (err) {
+        return callback(err);
+      }
+
+      // write data to the pending queue
+      queueWrite('pending', extend({}, data.Metadata, { bucket: bucket, key: key }), callback);
+    });
+  };
+
+  /**
+    ### "Hidden" functions
+
+    The following functions are available for use, but in general aren't that
+    useful when working with the `remotejob` queue.
+  **/
+
+  queue._removeJob = function(status, handle, callback) {
+    var queueUrl = statusQueues[status];
+    if (! queueUrl) {
+      return callback(new Error('no queue for status: ' + status));
+    }
+
+    debug('attempting to remove message from ' + status + ' queue');
+    sqs.deleteMessage({
+      QueueUrl: queueUrl,
+      ReceiptHandle: handle
+    }, callback);
+  };
+
+  async.parallel([ createQueues, createBucket('in'), createBucket('out') ], function(err) {
     if (err) {
+      debug('received error initializing: ', err);
       return queue.emit('error', err);
     }
 
