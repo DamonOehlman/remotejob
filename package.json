@@ -34,6 +34,7 @@
     "whisk": "^0.6.2"
   },
   "devDependencies": {
+    "hash-files": "^1.0.0",
     "request": "^2.40.0",
     "tape": "^2.14.0"
   }
