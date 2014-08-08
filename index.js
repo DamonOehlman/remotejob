@@ -277,7 +277,7 @@ module.exports = function(name, opts) {
   **/
   queue.submit = curry(function _submit(data, callback) {
     if (! ready) {
-      return this.once('ready', defer(_submit, arguments));
+      return queue.once('ready', defer(_submit, arguments));
     }
 
     async.waterfall([
