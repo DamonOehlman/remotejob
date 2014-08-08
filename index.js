@@ -24,6 +24,13 @@ var ACCEPTABLE_S3_ERRORS = [
   through the use of AWS S3 and SQS for job coordination.  It's an opinionated
   approach to getting remote work done, but also pragmatic.
 
+  ## Getting Started
+
+  The following code illustrates what a "job requester" would do to request a job
+  is queued for remote execution.
+
+  <<< examples/submit.js
+
   ## How it Works
 
   To be completed.
@@ -35,6 +42,7 @@ module.exports = function(name, opts) {
   var queue = new EventEmitter();
   var accessKeyId = (opts || {}).key;
   var region = (opts || {}).region || 'us-west-1';
+  var ready = false;
 
   // initialise the status queues
   var statusQueues = {
@@ -112,6 +120,12 @@ module.exports = function(name, opts) {
     });
   }
 
+  function defer(fn, args, scope) {
+    return function() {
+      fn.apply(scope, args);
+    };
+  }
+
   function getQueueAttributes(url, callback) {
     var opts = {
       QueueUrl: url,
@@ -150,11 +164,15 @@ module.exports = function(name, opts) {
     queue, then the callback will return an error, otherwise, it will
     fire once the next
   **/
-  queue.next = curry(function(status, callback) {
+  queue.next = curry(function _next(status, callback) {
     var opts = {
       QueueUrl: statusQueues[status],
       MaxNumberOfMessages: 1
     };
+
+    if (! ready) {
+      return queue.once('ready', defer(_next, arguments));
+    }
 
     if (! opts.QueueUrl) {
       return callback(new Error('no status queue for status: ' + status));
@@ -184,12 +202,16 @@ module.exports = function(name, opts) {
 
     Remove the specified `key` from the `direction` objects datastore.
   **/
-  queue.remove = curry(function(direction, key, callback) {
+  queue.remove = curry(function _remove(direction, key, callback) {
     var bucket = ['remotejobs', direction, name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
     };
+
+    if (! ready) {
+      return queue.once('ready', defer(_remove, arguments));
+    }
 
     debug('attempting to remove object ' + key + ' from bucket: ' + bucket);
     s3.deleteObject(opts, callback);
@@ -201,12 +223,16 @@ module.exports = function(name, opts) {
     Retrieve an object from either the input or the output queue (as
     specified byt the `direction` argument).
   **/
-  queue.retrieve = curry(function(direction, key, callback) {
+  queue.retrieve = curry(function _retrieve(direction, key, callback) {
     var bucket = ['remotejobs', direction, name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
     };
+
+    if (! ready) {
+      return queue.once('ready', defer(_retrieve, arguments));
+    }
 
     debug('attempting to retrieve object ' + key + ' from bucket: ' + bucket);
     s3.getObject(opts, callback);
@@ -216,7 +242,7 @@ module.exports = function(name, opts) {
     #### `store(direction, data, callback)`
 
   **/
-  queue.store = curry(function(direction, data, callback) {
+  queue.store = curry(function _store(direction, data, callback) {
     var key = (data || {}).key || uuid.v4();
     var bucket = ['remotejobs', direction, name].join('-');
     var opts = {
@@ -226,6 +252,10 @@ module.exports = function(name, opts) {
       Metadata: (data || {}).metadata || {},
       ACL: 'bucket-owner-read'
     };
+
+    if (! ready) {
+      return queue.once('ready', defer(_store, arguments));
+    }
 
     debug('putting object "' + key + '" into bucket: ' + bucket);
     s3.putObject(opts, function(err, response) {
@@ -240,24 +270,32 @@ module.exports = function(name, opts) {
     one after the other.
 
   **/
-  queue.submit = function(data, callback) {
+  queue.submit = curry(function _submit(data, callback) {
+    if (! ready) {
+      return this.once('ready', defer(_submit, arguments));
+    }
+
     async.waterfall([
       queue.store('in', data),
       queue.trigger('in')
     ], callback);
-  };
+  });
 
   /**
     #### `trigger(key, callback)`
 
     Add an entry to the queue for processing the input identified by `key`
   **/
-  queue.trigger = curry(function(status, key, callback) {
+  queue.trigger = curry(function _trigger(status, key, callback) {
     var bucket = ['remotejobs', status, name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
     };
+
+    if (! ready) {
+      return this.once('ready', defer(_trigger, arguments));
+    }
 
     debug('attempting to get metadata for object ' + key + ' from bucket: ' + bucket);
     s3.headObject(opts, function(err, data) {
@@ -304,6 +342,7 @@ module.exports = function(name, opts) {
       return queue.emit('error', err);
     }
 
+    ready = true;
     queue.emit('ready');
   });
 
