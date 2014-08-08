@@ -6,6 +6,9 @@ var extend = require('cog/extend');
 var EventEmitter = require('events').EventEmitter;
 
 var DEFAULT_Attributes = {};
+var ACCEPTABLE_S3_ERRORS = [
+  'BucketAlreadyOwnedByYou'
+];
 
 /**
   # remotejob
@@ -16,14 +19,50 @@ module.exports = function(name, opts) {
   var queue = new EventEmitter();
   var queueUrl;
   var accessKeyId = (opts || {}).key;
+  var region = (opts || {}).region || 'us-west-1';
+
+  var s3 = new AWS.S3({
+    apiVersion: '2006-03-01',
+    accessKeyId: accessKeyId,
+    secretAccessKey: (opts || {}).secret
+  });
+
   var sqs = new AWS.SQS({
     apiVersion: '2012-11-05',
     accessKeyId: accessKeyId,
     secretAccessKey: (opts || {}).secret,
-    region: (opts || {}).region || 'us-east-1'
+    region: region
   });
 
-  function createQueue() {
+  function createBucket(subcat) {
+    var bucketName = 'remotejobs-' + (subcat || '') + '-' + name;
+
+    return function(callback) {
+      var opts = {
+        Bucket: bucketName,
+//         CreateBucketConfiguration: {
+//           LocationConstraint: ['EU', region, ''].join(' | ')
+//         },
+        ACL: 'private'
+      }
+
+      debug('attempting to create bucket: ', opts);
+      s3.createBucket(opts, function(err, data) {
+        // ignore particular errors
+        if (err && ACCEPTABLE_S3_ERRORS.indexOf(err.code) >= 0) {
+          err = null;
+        }
+
+        if (err) {
+          debug('bucket ' + bucketName + ' creation failed: ', err);
+        }
+
+        callback(err, data);
+      });
+    };
+  }
+
+  function createQueue(callback) {
     var opts = {
       QueueName: name,
       Attributes: extend({}, DEFAULT_Attributes, (opts || {}).attributes)
@@ -32,7 +71,7 @@ module.exports = function(name, opts) {
     debug('attempting queue creation: ', opts);
     sqs.createQueue(opts, function(err, data) {
       queueUrl = err || (data && data.QueueUrl);
-      queue.emit('ready', queueUrl);
+      callback(err);
     });
   }
 
@@ -80,11 +119,12 @@ module.exports = function(name, opts) {
     getQueueAttributes(queueUrl, callback);
   };
 
-  // initialise the queueUrl, creating the queue if required
-  getQueueUrl(function(err) {
+  async.parallel([ createQueue, createBucket('in'), createBucket('out') ], function(err) {
     if (err) {
-      createQueue();
+      return queue.emit('error', err);
     }
+
+    queue.emit('ready');
   });
 
   return queue;
