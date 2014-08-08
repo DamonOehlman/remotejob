@@ -8,9 +8,7 @@ module.exports = function(queue) {
   test('able to submit an entry to the queue', function(t) {
     var data = {
       body: fs.createReadStream(__dirname + '/assets/image-small.zip'),
-      metadata: {
-        name: 'image-small'
-      }
+      name: 'image-small'
     };
 
     t.plan(2);
@@ -21,11 +19,12 @@ module.exports = function(queue) {
   });
 
   test('get the next item from the pending queue', function(t) {
-    t.plan(4);
+    t.plan(5);
     queue.next('pending', function(err, job) {
       t.ifError(err);
       t.ok(lastJob = job, 'got job');
       t.equal(job.id, lastJobNo, 'matched expected job');
+      t.equal(job.name, 'image-small', 'has metadata');
 
       // acknowledge the job (which removes it from the queue)
       job.acknowledge(t.ifErr);
