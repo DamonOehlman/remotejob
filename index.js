@@ -66,8 +66,8 @@ module.exports = function(name, opts) {
     region: region
   });
 
-  function createBucket(subcat) {
-    var bucketName = 'remotejobs-' + (subcat || '') + '-' + name;
+  function createBucket() {
+    var bucketName = 'remotejobs-' + name;
 
     return function(callback) {
       var opts = {
@@ -215,12 +215,12 @@ module.exports = function(name, opts) {
   });
 
   /**
-    #### `remove(direction, key, callback)`
+    #### `remove(key, callback)`
 
-    Remove the specified `key` from the `direction` objects datastore.
+    Remove the specified `key` from the objects datastore.
   **/
-  queue.remove = curry(function _remove(direction, key, callback) {
-    var bucket = ['remotejobs', direction, name].join('-');
+  queue.remove = curry(function _remove(key, callback) {
+    var bucket = ['remotejobs', name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
@@ -235,13 +235,12 @@ module.exports = function(name, opts) {
   });
 
   /**
-    #### `retrieve(direction, key, callback)`
+    #### `retrieve(key, callback)`
 
-    Retrieve an object from either the input or the output queue (as
-    specified byt the `direction` argument).
+    Retrieve an object from with the specified `key`
   **/
-  queue.retrieve = curry(function _retrieve(direction, key, callback) {
-    var bucket = ['remotejobs', direction, name].join('-');
+  queue.retrieve = curry(function _retrieve(key, callback) {
+    var bucket = ['remotejobs', name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
@@ -256,18 +255,18 @@ module.exports = function(name, opts) {
   });
 
   /**
-    #### `store(direction, data, callback)`
+    #### `store(data, callback)`
 
     The store function is used to store metadata and an optional `body` to
-    S3 storage for the queue bucket for the requested direction.
+    S3 storage for the queue bucket.
 
     The remotejob system uses two buckets to track the inbound and outbound
     data for objects being processed by the system.
 
   **/
-  queue.store = curry(function _store(direction, data, callback) {
+  queue.store = curry(function _store(data, callback) {
     var key = (data || {}).key || uuid.v4();
-    var bucket = ['remotejobs', direction, name].join('-');
+    var bucket = ['remotejobs', name].join('-');
     var metadata = _.omit(data, function(value, key) {
       return NOTMETA_KEYS.indexOf(key) >= 0;
     });
@@ -362,7 +361,7 @@ module.exports = function(name, opts) {
     }, callback);
   });
 
-  async.parallel([ createQueues, createBucket('in'), createBucket('out') ], function(err) {
+  async.parallel([ createQueues, createBucket() ], function(err) {
     if (err) {
       debug('received error initializing: ', err);
       return queue.emit('error', err);
