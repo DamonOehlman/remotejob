@@ -10,7 +10,7 @@ module.exports = function(queue) {
     };
 
     t.plan(2);
-    queue.store('in', data, function(err, key) {
+    queue.store(data, function(err, key) {
       t.ifError(err);
       t.ok(lastKey = key);
     });
@@ -18,21 +18,21 @@ module.exports = function(queue) {
 
   test('attempt to retrieve an unknown object fails', function(t) {
     t.plan(1);
-    queue.retrieve('in', uuid.v4(), function(err) {
+    queue.retrieve(uuid.v4(), function(err) {
       t.ok(err, 'received error as expected');
     });
   });
 
   test('able to retrieve a stored object', function(t) {
     t.plan(1);
-    queue.retrieve('in', lastKey, function(err, data) {
+    queue.retrieve(lastKey, function(err, data) {
       t.ifError(err);
     });
   });
 
   test('able to remove a stored object', function(t) {
     t.plan(1);
-    queue.remove('in', lastKey, function(err) {
+    queue.remove(lastKey, function(err) {
       t.ifError(err);
     });
   });

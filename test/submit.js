@@ -69,7 +69,7 @@ module.exports = function(queue) {
 
   test('able to remove a stored object', function(t) {
     t.plan(1);
-    queue.remove('in', lastJob.key, function(err) {
+    queue.remove(lastJob.key, function(err) {
       t.ifError(err);
     });
   });

@@ -11,7 +11,7 @@ module.exports = function(queue) {
     };
 
     t.plan(2);
-    queue.store('in', data, function(err, key) {
+    queue.store(data, function(err, key) {
       t.ifError(err);
       t.ok(lastKey = key);
     });
@@ -19,7 +19,7 @@ module.exports = function(queue) {
 
   test('able to trigger processing of an item', function(t) {
     t.plan(2);
-    queue.trigger('in', lastKey, function(err, jobno) {
+    queue.trigger(lastKey, function(err, jobno) {
       t.ifError(err);
       t.ok(lastJobNo = jobno, 'got job no');
     });
@@ -27,7 +27,7 @@ module.exports = function(queue) {
 
   test('get the next item from the pending queue', function(t) {
     t.plan(4);
-    queue.next('pending', function(err, job) {
+    queue.next(function(err, job) {
       t.ifError(err);
       t.ok(job, 'got job');
       t.equal(job.id, lastJobNo, 'matched expected job');
@@ -39,7 +39,7 @@ module.exports = function(queue) {
 
   test('able to remove a stored object', function(t) {
     t.plan(1);
-    queue.remove('in', lastKey, function(err) {
+    queue.remove(lastKey, function(err) {
       t.ifError(err);
     });
   });
