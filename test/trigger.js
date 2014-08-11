@@ -13,7 +13,7 @@ module.exports = function(queue) {
     t.plan(2);
     queue.store(data, function(err, key) {
       t.ifError(err);
-      t.ok(lastKey = key);
+      t.ok(lastKey = key, 'got key: ' + lastKey);
     });
   });
 
@@ -27,7 +27,7 @@ module.exports = function(queue) {
 
   test('get the next item from the pending queue', function(t) {
     t.plan(4);
-    queue.next(function(err, job) {
+    queue.next('pending', function(err, job) {
       t.ifError(err);
       t.ok(job, 'got job');
       t.equal(job.id, lastJobNo, 'matched expected job');

@@ -301,8 +301,8 @@ module.exports = function(name, opts) {
     }
 
     async.waterfall([
-      queue.store('in', data),
-      queue.trigger('in')
+      queue.store(data),
+      queue.trigger
     ], callback);
   });
 
@@ -311,8 +311,8 @@ module.exports = function(name, opts) {
 
     Add an entry to the queue for processing the input identified by `key`
   **/
-  queue.trigger = curry(function _trigger(status, key, callback) {
-    var bucket = ['remotejobs', status, name].join('-');
+  queue.trigger = curry(function _trigger(key, callback) {
+    var bucket = ['remotejobs', name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
