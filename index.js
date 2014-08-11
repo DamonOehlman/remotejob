@@ -2,7 +2,6 @@ var AWS = require('aws-sdk');
 var async = require('async');
 var debug = require('debug')('remotejob');
 var pluck = require('whisk/pluck');
-var extend = require('cog/extend');
 var EventEmitter = require('events').EventEmitter;
 var uuid = require('uuid');
 var curry = require('curry');
@@ -112,7 +111,7 @@ module.exports = function(name, opts) {
   function createSubQueue(childKey, callback) {
     var opts = {
       QueueName: name + '-' + childKey,
-      Attributes: extend({}, DEFAULT_SQS_Attributes, (opts || {}).attributes)
+      Attributes: _.extend({}, DEFAULT_SQS_Attributes, (opts || {}).attributes)
     };
 
     debug('attempting queue creation: ', opts);
@@ -333,7 +332,7 @@ module.exports = function(name, opts) {
       }
 
       // write data to the pending queue
-      queueWrite('pending', extend({}, data.Metadata, { bucket: bucket, key: key }), callback);
+      queueWrite('pending', _.extend({}, data.Metadata, { bucket: bucket, key: key }), callback);
     });
   });
 
@@ -363,6 +362,19 @@ module.exports = function(name, opts) {
       QueueUrl: queueUrl,
       ReceiptHandle: handle
     }, callback);
+  });
+
+  /**
+    #### `_storeAsset(job, data, callback)`
+
+    This is an internal function used to assist with storing assets associated
+    with the result of a job.
+
+  **/
+  queue._storeAsset = curry(function _storeAsset(job, data, callback) {
+    queue.store(_.extend({}, data, {
+      key: job.id + '-' + (data || {}).key || 'output'
+    }), callback);
   });
 
   async.parallel([ createQueues, createBucket() ], function(err) {
