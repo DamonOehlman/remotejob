@@ -51,14 +51,11 @@ module.exports = function(name, opts) {
   var queue = new EventEmitter();
   var accessKeyId = (opts || {}).key;
   var region = (opts || {}).region || 'us-west-1';
+  var queues = (opts || {}).queues || [ 'pending' ];
   var ready = false;
 
   // initialise the status queues
-  var statusQueues = {
-    pending: null,
-    inprogress: null,
-    completed: null
-  };
+  var queueUrls = {};
 
   var s3 = new AWS.S3({
     apiVersion: '2006-03-01',
@@ -98,15 +95,13 @@ module.exports = function(name, opts) {
   }
 
   function createQueues(callback) {
-    var childQueues = Object.keys(statusQueues);
-
-    async.map(childQueues, createSubQueue, function(err, urls) {
+    async.map(queues, createSubQueue, function(err, urls) {
       if (err) {
         return callback(err);
       }
 
-      childQueues.forEach(function(childKey, index) {
-        statusQueues[childKey] = urls[index];
+      queues.forEach(function(childKey, index) {
+        queueUrls[childKey] = urls[index];
       });
 
       callback();
@@ -143,7 +138,7 @@ module.exports = function(name, opts) {
 
   function queueWrite(status, data, callback) {
     var opts = {
-      QueueUrl: statusQueues[status],
+      QueueUrl: queueUrls[status],
       MessageBody: JSON.stringify(data),
     };
 
@@ -186,7 +181,7 @@ module.exports = function(name, opts) {
   **/
   queue.next = curry(function _next(status, callback) {
     var opts = {
-      QueueUrl: statusQueues[status],
+      QueueUrl: queueUrls[status],
       MaxNumberOfMessages: 1
     };
 
@@ -308,7 +303,8 @@ module.exports = function(name, opts) {
     #### `submit(data, callback)`
 
     The `submit` function performs the `store` and `trigger` operations
-    one after the other.
+    one after the other.  This operation places items in the default
+    `pending` queue.
 
   **/
   queue.submit = curry(function _submit(data, callback) {
@@ -318,16 +314,16 @@ module.exports = function(name, opts) {
 
     async.waterfall([
       queue.store(data),
-      queue.trigger
+      queue.trigger('pending')
     ], callback);
   });
 
   /**
-    #### `trigger(key, callback)`
+    #### `trigger(queueName, key, callback)`
 
-    Add an entry to the queue for processing the input identified by `key`
+    Add an entry to the queue for processing the input identified by `key`.
   **/
-  queue.trigger = curry(function _trigger(key, callback) {
+  queue.trigger = curry(function _trigger(queueName, key, callback) {
     var opts = {
       Bucket: bucket,
       Key: key
@@ -344,7 +340,7 @@ module.exports = function(name, opts) {
       }
 
       // write data to the pending queue
-      queueWrite('pending', _.extend({}, data.Metadata, { bucket: bucket, key: key }), callback);
+      queueWrite(queueName, _.extend({}, data.Metadata, { bucket: bucket, key: key }), callback);
     });
   });
 
@@ -364,7 +360,7 @@ module.exports = function(name, opts) {
 
   **/
   queue._removeJob = curry(function(status, handle, callback) {
-    var queueUrl = statusQueues[status];
+    var queueUrl = queueUrls[status];
     if (! queueUrl) {
       return callback(new Error('no queue for status: ' + status));
     }

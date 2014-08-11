@@ -19,7 +19,7 @@ module.exports = function(queue) {
 
   test('able to trigger processing of an item', function(t) {
     t.plan(2);
-    queue.trigger(lastKey, function(err, jobno) {
+    queue.trigger('pending', lastKey, function(err, jobno) {
       t.ifError(err);
       t.ok(lastJobNo = jobno, 'got job no');
     });

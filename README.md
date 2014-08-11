@@ -131,11 +131,12 @@ A simple wrapper to the raw S3 store operation (`s3.putObject`).
 #### `submit(data, callback)`
 
 The `submit` function performs the `store` and `trigger` operations
-one after the other.
+one after the other.  This operation places items in the default
+`pending` queue.
 
-#### `trigger(key, callback)`
+#### `trigger(queueName, key, callback)`
 
-Add an entry to the queue for processing the input identified by `key`
+Add an entry to the queue for processing the input identified by `key`.
 
 ### "Hidden" functions
 
