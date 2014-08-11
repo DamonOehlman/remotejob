@@ -41,6 +41,7 @@ var NOTMETA_KEYS = ['key', 'body'];
 
 **/
 module.exports = function(name, opts) {
+  var bucket = ['remotejobs', name].join('-');
   var queue = new EventEmitter();
   var accessKeyId = (opts || {}).key;
   var region = (opts || {}).region || 'us-west-1';
@@ -67,11 +68,9 @@ module.exports = function(name, opts) {
   });
 
   function createBucket() {
-    var bucketName = 'remotejobs-' + name;
-
     return function(callback) {
       var opts = {
-        Bucket: bucketName,
+        Bucket: bucket,
 //         CreateBucketConfiguration: {
 //           LocationConstraint: ['EU', region, ''].join(' | ')
 //         },
@@ -86,7 +85,7 @@ module.exports = function(name, opts) {
         }
 
         if (err) {
-          debug('bucket ' + bucketName + ' creation failed: ', err);
+          debug('bucket ' + bucket + ' creation failed: ', err);
         }
 
         callback(err, data);
@@ -165,7 +164,7 @@ module.exports = function(name, opts) {
   **/
   queue.download = function (job) {
     var opts = {
-      Bucket: (job || {}).bucket,
+      Bucket: (job || {}).bucket || bucket,
       Key: (job || {}).key
     };
 
@@ -220,7 +219,6 @@ module.exports = function(name, opts) {
     Remove the specified `key` from the objects datastore.
   **/
   queue.remove = curry(function _remove(key, callback) {
-    var bucket = ['remotejobs', name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
@@ -240,7 +238,6 @@ module.exports = function(name, opts) {
     Retrieve an object from with the specified `key`
   **/
   queue.retrieve = curry(function _retrieve(key, callback) {
-    var bucket = ['remotejobs', name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
@@ -266,27 +263,35 @@ module.exports = function(name, opts) {
   **/
   queue.store = curry(function _store(data, callback) {
     var key = (data || {}).key || uuid.v4();
-    var bucket = ['remotejobs', name].join('-');
     var metadata = _.omit(data, function(value, key) {
       return NOTMETA_KEYS.indexOf(key) >= 0;
     });
-    var opts = {
-      Bucket: bucket,
-      Key: key,
-      Body: (data || {}).body || '',
-      Metadata: metadata,
-      ACL: 'bucket-owner-read'
-    };
 
-    if (! ready) {
-      return queue.once('ready', defer(_store, arguments));
-    }
-
-    debug('putting object "' + key + '" into bucket: ' + bucket);
-    s3.putObject(opts, function(err, response) {
+    queue.storeRaw(key, metadata, (data || {}).body || '', function(err) {
       callback(err, err ? null : key);
     });
   });
+
+  /**
+    #### `storeRaw(key, metadata, body, callback)`
+
+    A simple wrapper to the raw S3 store operation (`s3.putObject`).
+  **/
+  queue.storeRaw = curry(function _storeRaw(key, metadata, body, callback) {
+    if (! ready) {
+      return queue.once('ready', defer(_storeRaw, arguments));
+    }
+
+    debug('putting object "' + key + '" into bucket: ' + bucket);
+    s3.putObject({
+      Bucket: bucket,
+      Key: key,
+      Metadata: metadata,
+      Body: body,
+      ACL: 'bucket-owner-read'
+    }, callback);
+  });
+
 
   /**
     #### `submit(data, callback)`
@@ -312,7 +317,6 @@ module.exports = function(name, opts) {
     Add an entry to the queue for processing the input identified by `key`
   **/
   queue.trigger = curry(function _trigger(key, callback) {
-    var bucket = ['remotejobs', name].join('-');
     var opts = {
       Bucket: bucket,
       Key: key
