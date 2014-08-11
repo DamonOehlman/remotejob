@@ -1,5 +1,6 @@
 var AWS = require('aws-sdk');
 var async = require('async');
+var mime = require('mime');
 var debug = require('debug')('remotejob');
 var pluck = require('whisk/pluck');
 var EventEmitter = require('events').EventEmitter;
@@ -275,18 +276,25 @@ module.exports = function(name, opts) {
     A simple wrapper to the raw S3 store operation (`s3.putObject`).
   **/
   queue.storeRaw = curry(function _storeRaw(key, metadata, body, callback) {
-    if (! ready) {
-      return queue.once('ready', defer(_storeRaw, arguments));
-    }
-
-    debug('putting object "' + key + '" into bucket: ' + bucket);
-    s3.putObject({
+    var data = {
       Bucket: bucket,
       Key: key,
       Metadata: metadata,
       Body: body,
       ACL: 'bucket-owner-read'
-    }, callback);
+    };
+
+    if (! ready) {
+      return queue.once('ready', defer(_storeRaw, arguments));
+    }
+
+    // if the metadata has included filename, then extra the mime info
+    if (metadata.filename) {
+      data.ContentType = mime.lookup(metadata.filename);
+    }
+
+    debug('putting object "' + key + '" into bucket: ' + bucket);
+    s3.putObject(data, callback);
   });
 
 
