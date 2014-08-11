@@ -66,30 +66,28 @@ module.exports = function(name, opts) {
     region: region
   });
 
-  function createBucket() {
-    return function(callback) {
-      var opts = {
-        Bucket: bucket,
-//         CreateBucketConfiguration: {
-//           LocationConstraint: ['EU', region, ''].join(' | ')
-//         },
-        ACL: 'private'
+  function createBucket(callback) {
+    var opts = {
+      Bucket: bucket,
+      //         CreateBucketConfiguration: {
+      //           LocationConstraint: ['EU', region, ''].join(' | ')
+      //         },
+      ACL: 'private'
+    }
+
+    debug('attempting to create bucket: ', opts);
+    s3.createBucket(opts, function(err, data) {
+      // ignore particular errors
+      if (err && ACCEPTABLE_S3_ERRORS.indexOf(err.code) >= 0) {
+        err = null;
       }
 
-      debug('attempting to create bucket: ', opts);
-      s3.createBucket(opts, function(err, data) {
-        // ignore particular errors
-        if (err && ACCEPTABLE_S3_ERRORS.indexOf(err.code) >= 0) {
-          err = null;
-        }
+      if (err) {
+        debug('bucket ' + bucket + ' creation failed: ', err);
+      }
 
-        if (err) {
-          debug('bucket ' + bucket + ' creation failed: ', err);
-        }
-
-        callback(err, data);
-      });
-    };
+      callback(err, data);
+    });
   }
 
   function createQueues(callback) {
@@ -377,7 +375,7 @@ module.exports = function(name, opts) {
     }), callback);
   });
 
-  async.parallel([ createQueues, createBucket() ], function(err) {
+  async.parallel([ createQueues, createBucket ], function(err) {
     if (err) {
       debug('received error initializing: ', err);
       return queue.emit('error', err);
