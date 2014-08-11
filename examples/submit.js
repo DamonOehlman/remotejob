@@ -7,6 +7,7 @@ var queue = require('..')('testqueue', {
 // cats from: http://commons.wikimedia.org/wiki/Cat#mediaviewer/File:Collage_of_Six_Cats-01.jpg
 var data = {
   name: 'Cat Montage',
+  filename: 'cat.jpg',
   body: fs.createReadStream(__dirname + '/cat.jpg')
 };
 
@@ -16,4 +17,6 @@ queue.submit(data, function(err, jobno) {
   }
 
   console.log('job ' + jobno + ' submitted for processing');
+  queue.waitFor(jobno, 'output', function(err, data) {
+  });
 });
