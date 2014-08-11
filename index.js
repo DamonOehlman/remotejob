@@ -37,6 +37,12 @@ var NOTMETA_KEYS = ['key', 'body'];
 
   <<< examples/process-next.js
 
+  __NOTE:__ While the `remotejob` module allows you to provide `Stream` objects
+  as the body to various functions, the same limitations that apply when using
+  the [AWS SDK apply](https://github.com/aws/aws-sdk-js/issues/94), where a
+  stream length is needed to upload the file to S3.  In most cases it is simpler
+  to work with a `Buffer` instead as has been done in the example above.
+
   ## Reference
 
 **/
