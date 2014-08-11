@@ -24,6 +24,7 @@ var queue = require('remotejob')('testqueue', {
 // cats from: http://commons.wikimedia.org/wiki/Cat#mediaviewer/File:Collage_of_Six_Cats-01.jpg
 var data = {
   name: 'Cat Montage',
+  filename: 'cat.jpg',
   body: fs.createReadStream(__dirname + '/cat.jpg')
 };
 
@@ -33,6 +34,8 @@ queue.submit(data, function(err, jobno) {
   }
 
   console.log('job ' + jobno + ' submitted for processing');
+  queue.waitFor(jobno, 'output', function(err, data) {
+  });
 });
 
 ```
@@ -41,22 +44,46 @@ On the receiving end, the code would look something similar to this:
 
 ```js
 var fs = require('fs');
+var uuid = require('uuid');
+var gm = require('gm');
 var queue = require('remotejob')('testqueue', {
   key: process.env.REMOTEBUILD_TEST_KEY,
   secret: process.env.REMOTEBUILD_TEST_SECRET
 });
 
-queue.next('pending', function(err, job) {
+function abortWorker(err) {
+  console.error('Worker failed: ', err);
+  process.exit(1);
+}
+
+function processNext(err, job) {
   if (err) {
-    return console.error('could not get next job');
+    return abortWorker(err);
   }
 
   // acknowledge the job
   job.acknowledge();
 
-  // download the file
-  job.createReadStream().pipe(fs.createWriteStream(__dirname + '/newcat.jpg'));
-});
+  // download the file and process with graphicsmagick
+  gm(job.createReadStream(), job.filename)
+    .resize(200, 200)
+    .stream('png', function(err, stdout, stderr) {
+      var items = [
+        { key: 'output', filename: 'cat.png', body: stdout },
+        { key: 'stderr', filename: 'stderr.log', body: stderr }
+      ];
+
+      job.complete(err, items, function(submitErr) {
+        if (submitErr) {
+          return abortWorker(submitErr);
+        }
+
+        queue.next('pending', processNext);
+      });
+    });
+}
+
+queue.next('pending', processNext);
 
 ```
 
@@ -73,22 +100,25 @@ processing queue. If the requested `status` does not relate to a known
 queue, then the callback will return an error, otherwise, it will
 fire once the next
 
-#### `remove(direction, key, callback)`
+#### `remove(key, callback)`
 
-Remove the specified `key` from the `direction` objects datastore.
+Remove the specified `key` from the objects datastore.
 
-#### `retrieve(direction, key, callback)`
+#### `retrieve(key, callback)`
 
-Retrieve an object from either the input or the output queue (as
-specified byt the `direction` argument).
+Retrieve an object from with the specified `key`
 
-#### `store(direction, data, callback)`
+#### `store(data, callback)`
 
 The store function is used to store metadata and an optional `body` to
-S3 storage for the queue bucket for the requested direction.
+S3 storage for the queue bucket.
 
 The remotejob system uses two buckets to track the inbound and outbound
 data for objects being processed by the system.
+
+#### `storeRaw(key, metadata, body, callback)`
+
+A simple wrapper to the raw S3 store operation (`s3.putObject`).
 
 #### `submit(data, callback)`
 
@@ -109,6 +139,33 @@ useful when working with the `remotejob` queue.
 This function is used to remove jobs from the specified `status` queue.
 As required but AWS SQS, this function accepts a `receiptHandle` for a
 message and passed that through to remove the message from the queue.
+
+#### `_storeAsset(job, data, callback)`
+
+This is an internal function used to assist with storing assets associated
+with the result of a job.
+
+### `Job` prototype
+
+#### `Job#acknowledge(callback)`
+
+Remove the job from the `pending` queue.
+
+#### `Job#createReadStream(name?)` => `ReadableStream`
+
+Initiate a download of the resource associated with the job. If
+`name` is not specified this will be the input file associated with
+the job request.
+
+#### `Job#complete(err, assets, callback)`
+
+When the job processing has been completed, the `complete` method is
+used to pass back the job status and any assets that have been created
+during the procesing.
+
+In the event that an error has occurred during processing, then an
+`Error` should be passed back through the `err` argument and the job
+status will be updated to reflect this.
 
 ## License(s)
 
