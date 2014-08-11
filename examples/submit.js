@@ -17,6 +17,4 @@ queue.submit(data, function(err, jobno) {
   }
 
   console.log('job ' + jobno + ' submitted for processing');
-  queue.waitFor(jobno, 'output', function(err, data) {
-  });
 });

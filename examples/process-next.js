@@ -17,25 +17,29 @@ function processNext(err, job) {
   }
 
   // acknowledge the job
-  job.acknowledge();
+  job.acknowledge(function(err) {
+    if (err) {
+      return abortWorker(err);
+    }
 
-  // download the file and process with graphicsmagick
-  gm(job.createReadStream(), job.filename)
-    .resize(200, 200)
-    .stream('png', function(err, stdout, stderr) {
-      var items = [
-        { key: 'output', filename: 'cat.png', body: stdout },
-        { key: 'stderr', filename: 'stderr.log', body: stderr }
-      ];
+    // download the file and process with graphicsmagick
+    gm(job.createReadStream(), job.filename)
+      .resize('400^', '400^')
+      .toBuffer('PNG', function(err, buffer) {
+        var items = [
+          { key: 'output', filename: 'cat.png', body: buffer }
+        ];
 
-      job.complete(err, items, function(submitErr) {
-        if (submitErr) {
-          return abortWorker(submitErr);
-        }
+        job.complete(err, items, function(submitErr) {
+          if (submitErr) {
+            return abortWorker(submitErr);
+          }
 
-        queue.next('pending', processNext);
+          console.log('cat process successfully');
+          queue.next('pending', processNext);
+        });
       });
-    });
+  });
 }
 
 queue.next('pending', processNext);
