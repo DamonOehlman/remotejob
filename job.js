@@ -3,6 +3,10 @@ var async = require('async');
 /**
   ### `Job` prototype
 
+  A `Job` is a helper layer for working with the underlying queue. The exposed
+  methods are provided as a convenience, and do generally make working with
+  the queue a little more terse than it would be otherwise.
+
 **/
 function Job(queue, data) {
   var body;
