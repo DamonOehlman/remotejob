@@ -97,6 +97,27 @@ to work with a `Buffer` instead as has been done in the example above.
 
 ## Reference
 
+### `remotejob(name, opts?)`
+
+This creates a new queue that provides a number of helper functions that can be
+used to manage the remote job queue.  The `name` argument is used to generate
+the appropriate S3 bucket and SQS queues, though it is not used without
+modification.
+
+Additionally, the following options can be passed through:
+
+- `region` (default: `us-west-1`)
+
+  The AWS region in which SQS queues are created.
+
+- `queues` (default: `[ 'pending' ]`)
+
+  The names of the queues that will be used when triggering jobs. In general,
+  if you are using the `submit` function then you will not need to change this
+  but if you are customising behaviour through using `store` and `trigger`
+  individually you may want to customise this to fit with the names of the
+  jobs you are triggering jobs against.
+
 #### `download(opts) => ReadableStream`
 
 Create a readable stream for the S3 object details provided.
