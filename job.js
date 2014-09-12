@@ -41,14 +41,14 @@ var proto = Job.prototype;
 /**
   #### `Job#acknowledge(callback)`
 
-  Remove the job from the `pending` queue.
+  Remove the job from the status queue.
 **/
-proto.acknowledge = function(callback) {
+proto.acknowledge = function(status, callback) {
   // ensure we have a callback
   callback = callback || function() {};
 
-  // remove from the pending queue
-  this.queue._removeJob('pending', this.data.ReceiptHandle, callback);
+  // remove from the status queue
+  this.queue._removeJob(status, this.data.ReceiptHandle, callback);
 };
 
 /**
