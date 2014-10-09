@@ -225,7 +225,11 @@ module.exports = function(name, opts) {
 
       // if we have no messages, then continue waiting
       if (messages.length === 0) {
-        return queue.next(status, callback);
+        process.nextTick(function() {
+          queue.next(status, callback);
+        });
+
+        return;
       }
 
       // create the new job instance
