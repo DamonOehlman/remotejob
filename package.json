@@ -1,6 +1,6 @@
 {
   "name": "remotejob",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Using AWS SQS and S3 queue and execute jobs on remote machines",
   "main": "index.js",
   "scripts": {
