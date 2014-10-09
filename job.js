@@ -44,6 +44,11 @@ var proto = Job.prototype;
   Remove the job from the status queue.
 **/
 proto.acknowledge = function(status, callback) {
+  if (arguments.length === 0 || typeof status == 'function') {
+    callback = status;
+    status = 'pending';
+  }
+
   // ensure we have a callback
   callback = callback || function() {};
 
