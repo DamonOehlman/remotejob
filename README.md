@@ -181,9 +181,10 @@ A `Job` is a helper layer for working with the underlying queue. The exposed
 methods are provided as a convenience, and do generally make working with
 the queue a little more terse than it would be otherwise.
 
-#### `Job#acknowledge(callback)`
+#### `Job#acknowledge(status?, callback)`
 
-Remove the job from the `pending` queue.
+Remove the job from the status queue.  If not provided the `status` argument
+will default to the value of `pending`.
 
 #### `Job#createReadStream(name?)` => `ReadableStream`
 

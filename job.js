@@ -39,9 +39,11 @@ module.exports = Job;
 var proto = Job.prototype;
 
 /**
-  #### `Job#acknowledge(callback)`
+  #### `Job#acknowledge(status?, callback)`
 
-  Remove the job from the status queue.
+  Remove the job from the status queue.  If not provided the `status` argument
+  will default to the value of `pending`.
+
 **/
 proto.acknowledge = function(status, callback) {
   if (arguments.length === 0 || typeof status == 'function') {
