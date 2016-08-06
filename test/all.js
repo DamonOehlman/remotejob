@@ -1,4 +1,4 @@
-var queueName = 'test'; // require('uuid').v4();
+var queueName = 'remote_job_test'; // require('uuid').v4();
 var test = require('tape');
 var queue = require('..')(queueName, {
   key: process.env.REMOTEBUILD_TEST_KEY,
