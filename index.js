@@ -287,9 +287,7 @@ module.exports = function(name, opts) {
   **/
   queue.store = curry(function _store(data, callback) {
     var key = (data || {}).key || uuid.v4();
-    var metadata = _.omit(data, function(value, key) {
-      return NOTMETA_KEYS.indexOf(key) >= 0;
-    });
+    var metadata = _.omit(data, NOTMETA_KEYS);
 
     queue.storeRaw(key, metadata, (data || {}).body || '', function(err) {
       callback(err, err ? null : key);
