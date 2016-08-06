@@ -1,3 +1,4 @@
+
 # remotejob
 
 This is a package that allows you to request the execution of remote jobs
@@ -7,7 +8,7 @@ approach to getting remote work done, but also pragmatic.
 
 [![NPM](https://nodei.co/npm/remotejob.png)](https://nodei.co/npm/remotejob/)
 
-[![unstable](https://img.shields.io/badge/stability-unstable-yellowgreen.svg)](https://github.com/dominictarr/stability#unstable) [![Build Status](https://img.shields.io/travis/DamonOehlman/remotejob.svg?branch=master)](https://travis-ci.org/DamonOehlman/remotejob) 
+[![unstable](https://img.shields.io/badge/stability-unstable-yellowgreen.svg)](https://github.com/dominictarr/stability#unstable) [![Build Status](https://api.travis-ci.org/DamonOehlman/remotejob.svg?branch=master)](https://travis-ci.org/DamonOehlman/remotejob) [![bitHound Score](https://www.bithound.io/github/DamonOehlman/remotejob/badges/score.svg)](https://www.bithound.io/github/DamonOehlman/remotejob) 
 
 ## Getting Started
 
@@ -206,7 +207,7 @@ status will be updated to reflect this.
 
 ### MIT
 
-Copyright (c) 2014 Damon Oehlman <damon.oehlman@gmail.com>
+Copyright (c) 2016 Damon Oehlman <damon.oehlman@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
