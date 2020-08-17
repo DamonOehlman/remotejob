@@ -26,7 +26,7 @@
   "homepage": "https://github.com/DamonOehlman/remotejob",
   "dependencies": {
     "async": "^2.0.1",
-    "aws-sdk": "2.4.x",
+    "aws-sdk": "2.38.0",
     "curry": "^1.2.0",
     "debug": "^2.2.0",
     "lodash": "^4.14.1",
